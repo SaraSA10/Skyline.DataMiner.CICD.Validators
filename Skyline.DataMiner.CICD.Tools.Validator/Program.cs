@@ -107,7 +107,7 @@
                 name: "--mcc-old-protocol-path",
                 description: "Path to the old protocol.xml file for comparison.")
             {
-                IsRequired = true
+                IsRequired = false
             };
             oldProtocolPathOption.LegalFilePathsOnly();
 
@@ -143,7 +143,7 @@
             {
                 IsRequired = false
             };
-/*
+
             var catalogIdOption = new Option<string>(
                 name: "--catalog-id",
                 description: "Catalog ID for fetching previous protocol version from Catalog API.")
@@ -165,7 +165,7 @@
             {
                 IsRequired = false
             };
-*/
+
             var mccCommand = new Command("major-change-checker", "Performs major change checking between protocol versions.")
             {
                 majorChangeCheckerSolutionPathOption,
@@ -174,9 +174,9 @@
                 majorChangeCheckerOutputFileNameOption,
                 majorChangeCheckerOutputFormatsOption,
                 majorChangeCheckerIncludeSuppressedOption,
-                //catalogIdOption,                
-                //catalogApiKeyOption,            
-                //tempDirectoryOption
+                catalogIdOption,                
+                catalogApiKeyOption,            
+                tempDirectoryOption
             };
             /*
                         mccCommand.SetHandler(async (context) =>
@@ -247,19 +247,16 @@
                 var outputFileName = context.ParseResult.GetValueForOption(majorChangeCheckerOutputFileNameOption);
                 var outputFormats = context.ParseResult.GetValueForOption(majorChangeCheckerOutputFormatsOption);
                 var includeSuppressed = context.ParseResult.GetValueForOption(majorChangeCheckerIncludeSuppressedOption);
-                //var catalogId = context.ParseResult.GetValueForOption(catalogIdOption);
-                //var apiKey = context.ParseResult.GetValueForOption(catalogApiKeyOption);
-                //var tempDirectory = context.ParseResult.GetValueForOption(tempDirectoryOption);
+                var catalogId = context.ParseResult.GetValueForOption(catalogIdOption);
+                var apiKey = context.ParseResult.GetValueForOption(catalogApiKeyOption);
+                var tempDirectory = context.ParseResult.GetValueForOption(tempDirectoryOption);
 
                 var runner = new MajorChangeCheckerRunner();
-                /*int result = await runner.RunMajorChangeChecker(
-                    solutionPath, oldProtocolPath, outputDirectory, outputFileName,
-                    outputFormats, includeSuppressed, catalogId, apiKey, tempDirectory);
-                */
                 int result = await runner.RunMajorChangeChecker(
                     solutionPath, oldProtocolPath, outputDirectory, outputFileName,
-                    outputFormats, includeSuppressed);
-
+                    outputFormats, includeSuppressed, catalogId, apiKey, tempDirectory);
+                
+              
                 context.ExitCode = result;
             });
 
