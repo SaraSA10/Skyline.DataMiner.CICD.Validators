@@ -15,7 +15,7 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
         public string NewVersion { get; set; }
         public string OldProtocol { get; set; }
         public string OldVersion { get; set; }
-        public string ValidatorVersion { get; set; }
+        public string MCCVersion { get; set; }
         public DateTime ValidationTimeStamp { get; set; }
         public int CriticalIssueCount { get; set; }
         public int SuppressedCriticalIssueCount { get; set; }

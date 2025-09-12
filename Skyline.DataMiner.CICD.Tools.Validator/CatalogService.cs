@@ -40,11 +40,10 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
                 string previousVersion = GetPreviousVersion(currentVersion);
                 _logger.LogInformation($"Attempting to download version {previousVersion} of {protocolName} from catalog {catalogId}");
 
-                // Use correct base URL and endpoint structure
                 string downloadUrl = $"https://api.dataminer.services/api/key-catalog/v2-0/{catalogId}/versions/{previousVersion}/download";
 
                 HttpResponseMessage response = await _httpClient.GetAsync(downloadUrl);
-
+/*
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     _logger.LogWarning($"Version {previousVersion} not found. Trying alternative version formats...");
@@ -63,7 +62,7 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
                         }
                     }
                 }
-
+*/
                 response.EnsureSuccessStatusCode();
 
                 string tempFilePath = Path.Combine(tempDirectory, $"{protocolName}_{previousVersion}.xml");
@@ -104,7 +103,7 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
             versionParts[3] = (buildNumber - 1).ToString();
             return string.Join(".", versionParts);
         }
-
+/*
         private string[] GetAlternativeVersionFormats(string currentVersion)
         {
             // Try different version formats that might be used in the catalog
@@ -112,18 +111,16 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
 
             if (versionParts.Length >= 4)
             {
-                // For version 1.2.0.2, try:
-                // - 1.2.0.1 (already tried)
-                // - 1.2.0
-                // - 1.2
+                
                 return new[]
                 {
-                    $"{versionParts[0]}.{versionParts[1]}.{versionParts[2]}", // 1.2.0
-                    $"{versionParts[0]}.{versionParts[1]}" // 1.2
+                    $"{versionParts[0]}.{versionParts[1]}.{versionParts[2]}", 
+                    $"{versionParts[0]}.{versionParts[1]}" 
                 };
             }
 
             return new string[0];
         }
+*/
     }
 }

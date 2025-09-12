@@ -34,226 +34,16 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
                 logger = factory.CreateLogger("MCC");
             }
         }
-        /*   
-           public async Task<int> ValidateProtocolSolution(string solutionPath, string mccResultsOutputDirectory, string mccResultsFileName, string[] outputFormats, bool includeSuppressed, bool performRestore, int restoreTimeout)
-           {
-               if (solutionPath == null) throw new ArgumentNullException(nameof(solutionPath));
 
-               if (String.IsNullOrEmpty(solutionPath)) throw new ArgumentException("Invalid solution path.", nameof(solutionPath));
-
-               solutionPath = Path.GetFullPath(solutionPath);
-
-               string solutionFilePath = GetSolutionFilePath(solutionPath);
-
-               // Required for both building solution and for loading the MSBuildWorkspace to perform validation.
-               if (!MSBuildLocator.IsRegistered)
-               {
-                   MSBuildLocator.RegisterDefaults();
-               }
-
-               var solution = Solution.Load(solutionFilePath);
-               bool isLegacyStyleSolution = IsLegacyStyleSolution(solution);
-
-               if (isLegacyStyleSolution)
-               {
-                   logger.LogError("No validation performed. This tool can only validate solutions that use the SDK-style project format. This solution uses the legacy-style project format. Consider migrating to the SDK-style project format.");
-                   return 1;
-               }
-
-               if (performRestore)
-               {
-                   logger.LogInformation($"Performing 'dotnet restore' on '{solutionFilePath}'...");
-                   RestoreSolution(solutionFilePath, restoreTimeout);
-               }
-
-               Validator validatorRunner = new Validator();
-               logger.LogInformation($"Validating protocol solution '{solutionFilePath}'...");
-               Stopwatch sw = Stopwatch.StartNew();
-               var validatorResults = await validatorRunner.ValidateProtocolSolution(solutionFilePath, includeSuppressed);
-
-               if (String.IsNullOrWhiteSpace(validatorResultsFileName))
-               {
-                   validatorResultsFileName = $"ValidatorResults_{validatorResults.Protocol}_{validatorResults.Version}";
-               }
-
-               sw.Stop();
-
-               logger.LogInformation("Validation completed.");
-
-               logger.LogInformation($"  Detected {validatorResults.CriticalIssueCount} critical issue(s).");
-               logger.LogInformation($"  Detected {validatorResults.MajorIssueCount} major issue(s).");
-               logger.LogInformation($"  Detected {validatorResults.MinorIssueCount} minor issue(s).");
-               logger.LogInformation($"  Detected {validatorResults.WarningIssueCount} warning issue(s).");
-
-               logger.LogInformation("  Time elapsed: " + sw.Elapsed);
-
-               List<IResultWriter> resultWriters = new List<IResultWriter>();
-
-               if (outputFormats.Any(f => String.Equals(f, "XML", StringComparison.OrdinalIgnoreCase)))
-               {
-                   resultWriters.Add(new ResultWriterXml(Path.Combine(validatorResultsOutputDirectory, $"{validatorResultsFileName}.xml"), logger));
-               }
-
-               if (outputFormats.Any(f => String.Equals(f, "JSON", StringComparison.OrdinalIgnoreCase)))
-               {
-                   resultWriters.Add(new ResultWriterJson(Path.Combine(validatorResultsOutputDirectory, $"{validatorResultsFileName}.json"), logger));
-               }
-
-               if (outputFormats.Any(f => String.Equals(f, "HTML", StringComparison.OrdinalIgnoreCase)))
-               {
-                   resultWriters.Add(new ResultWriterHtml(Path.Combine(validatorResultsOutputDirectory, $"{validatorResultsFileName}.html"), logger, includeSuppressed));
-               }
-
-               await SendMetricAsync("protocol", "solution");
-
-               logger.LogInformation("Writing results...");
-
-               if (!Directory.Exists(validatorResultsOutputDirectory))
-               {
-                   Directory.CreateDirectory(validatorResultsOutputDirectory);
-               }
-
-               foreach (var writer in resultWriters)
-               {
-                   writer.WriteResults(validatorResults);
-               }
-
-               logger.LogInformation("Writing results completed");
-
-               logger.LogInformation("Finished");
-               return 0;
-           }
-
-           private string GetSolutionFilePath(string solutionPath)
-           {
-               string solutionFilePath;
-
-               if (File.Exists(solutionPath))
-               {
-                   solutionFilePath = solutionPath;
-               }
-               else if (Directory.Exists(solutionPath))
-               {
-                   var slnFiles = Directory.GetFiles(solutionPath, "*.sln", SearchOption.TopDirectoryOnly);
-
-                   if (slnFiles.Length == 0)
-                   {
-                       throw new ArgumentException($"The specified solution path '{solutionPath}' does not contain a .sln file.");
-                   }
-
-                   if (slnFiles.Length > 1)
-                   {
-                       throw new ArgumentException($"The specified solution path '{solutionPath}' contains multiple .sln files. Specify the full path of the solution you want to validate.");
-                   }
-
-                   solutionFilePath = slnFiles[0];
-               }
-               else
-               {
-                   throw new ArgumentException($"The specified solution path '{solutionPath}' does not exist.", nameof(solutionPath));
-               }
-
-               return solutionFilePath;
-           }
-
-           private static bool IsLegacyStyleSolution(Solution solution)
-           {
-               bool isLegacyStyleSolution = false;
-
-               foreach (var p in solution.Projects)
-               {
-                   var project = solution.LoadProject(p);
-
-                   if (project.ProjectStyle == ProjectStyle.Legacy)
-                   {
-                       isLegacyStyleSolution = true;
-                       break;
-                   }
-               }
-
-               return isLegacyStyleSolution;
-           }
-
-           private void RestoreSolution(string solutionFilePath, int buildTimeout)
-           {
-               using (Process process = new Process())
-               {
-                   process.StartInfo.FileName = "dotnet";
-                   process.StartInfo.Arguments = $"restore \"{solutionFilePath}\"";
-                   process.StartInfo.UseShellExecute = false;
-                   process.StartInfo.CreateNoWindow = true;
-                   process.StartInfo.RedirectStandardOutput = true;
-                   process.StartInfo.RedirectStandardError = true;
-
-                   process.OutputDataReceived += (sender, args) => { if (args.Data != null) logger.LogInformation(args.Data); };
-                   process.ErrorDataReceived += (sender, args) => { if (args.Data != null) logger.LogError(args.Data); };
-
-                   process.Start();
-                   process.BeginOutputReadLine();
-                   process.BeginErrorReadLine();
-                   bool exited = process.WaitForExit(buildTimeout);
-
-                   if (exited)
-                   {
-                       // See https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.exitcode?view=net-8.0#remarks
-                       process.WaitForExit();
-                   }
-
-                   if (!exited) throw new TimeoutException("The restore of the solution timed out.");
-
-                   var exitCode = process.ExitCode;
-
-                   if (exitCode != 0)
-                   {
-                       throw new InvalidOperationException("Could not restore the solution.");
-                   }
-               }
-           }
-
-           private static async Task SendMetricAsync(string artifactType, string type)
-           {
-               try
-               {
-                   DevOpsMetrics metrics = new DevOpsMetrics();
-                   string message = $"Skyline.DataMiner.CICD.Tools.Validator|{artifactType}";
-                   if (type != null)
-                   {
-                       message += $"|{type}";
-                   }
-
-                   await metrics.ReportAsync(message);
-               }
-               catch
-               {
-                   // Silently catch as if the request fails due to network issues we don't want the tool to fail.
-               }
-           }
-       }
-   }
-        */
         public async Task<int> RunMajorChangeChecker(string solutionPath, string oldProtocolPath,
-    string outputDirectory, string outputFileName, string[] outputFormats,
-    bool includeSuppressed, string catalogId, string apiKey, string tempDirectory)
+        string outputDirectory, string outputFileName, string[] outputFormats,
+        bool includeSuppressed, string catalogId, string apiKey, string tempDirectory)
         {
             try
             {
                 string oldProtocolCode;
                 string oldProtocolName;
                 string oldProtocolVersion;
-
-                // Helper method to extract name and version
-                (string Name, string Version) GetProtocolInfo(string protocolCode)
-                {
-                    var parser = new Parser(protocolCode);
-                    var document = parser.Document;
-                    if (document == null) return ("unknown", "unknown");
-
-                    var model = new ProtocolModel(document);
-                    return (
-                        model.Protocol?.Name?.Value ,
-                        model.Protocol?.Version?.Value 
-                    );
-                }
 
                 if (string.IsNullOrEmpty(oldProtocolPath))
                 {
@@ -263,32 +53,45 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
                         return 1;
                     }
 
-                    // Get current protocol info to determine previous version
                     string newProtocolCode = GetProtocolCode(solutionPath);
                     var newParser = new Parser(newProtocolCode);
                     var newDocument = newParser.Document;
                     var newModel = new ProtocolModel(newDocument);
 
-                    // Download previous version from catalog (using the model as expected)
                     var catalogService = new CatalogService(logger, apiKey);
                     string downloadedProtocolPath = await catalogService.DownloadPreviousProtocolVersion(catalogId, newModel, tempDirectory);
 
-                    oldProtocolCode = File.ReadAllText(downloadedProtocolPath);
-                    (oldProtocolName, oldProtocolVersion) = GetProtocolInfo(oldProtocolCode);
+                    if (string.IsNullOrEmpty(downloadedProtocolPath) || !File.Exists(downloadedProtocolPath))
+                    {
+                        logger.LogError("Failed to download protocol from catalog");
+                        return 1;
+                    }
 
-                    // Clean up temporary file after use
+                    oldProtocolCode = File.ReadAllText(downloadedProtocolPath);
+                    var protocolInfo = GetProtocolInfo(oldProtocolCode);
+                    oldProtocolName = protocolInfo.Name;
+                    oldProtocolVersion = protocolInfo.Version;
+
+                    //logger.LogInformation($"Downloaded protocol: {oldProtocolName} version {oldProtocolVersion}");
+
                     File.Delete(downloadedProtocolPath);
                 }
                 else
                 {
                     oldProtocolCode = File.ReadAllText(oldProtocolPath);
-                    (oldProtocolName, oldProtocolVersion) = GetProtocolInfo(oldProtocolCode);
+                    var protocolInfo = GetProtocolInfo(oldProtocolCode);
+                    oldProtocolName = protocolInfo.Name;
+                    oldProtocolVersion = protocolInfo.Version;
+
+                    logger.LogInformation($"Local protocol: {oldProtocolName} version {oldProtocolVersion}");
                 }
 
                 var checker = new MajorChangeChecker();
                 var results = await checker.CheckMajorChanges(solutionPath, oldProtocolCode, includeSuppressed);
 
-                // Use extracted names for output filename
+                results.OldProtocol = oldProtocolName;
+                results.OldVersion = oldProtocolVersion;
+
                 if (string.IsNullOrEmpty(outputFileName))
                 {
                     outputFileName = $"MCCResults_{results.NewProtocol}_{results.NewVersion}_vs_{oldProtocolName}_{oldProtocolVersion}";
@@ -334,6 +137,28 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
                 return 1;
             }
         }
+
+        private ProtocolInfo GetProtocolInfo(string protocolCode)
+        {
+            try
+            {
+                var parser = new Parser(protocolCode);
+                var document = parser.Document;
+                if (document == null) return new ProtocolInfo("unknown", "unknown");
+
+                var model = new ProtocolModel(document);
+                return new ProtocolInfo(
+                    model.Protocol?.Name?.Value ,
+                    model.Protocol?.Version?.Value 
+                );
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error parsing protocol information");
+                return new ProtocolInfo("unknown", "unknown");
+            }
+        }
+
         private static string GetProtocolCode(string solutionPath)
         {
             var solutionDirectory = Path.GetDirectoryName(solutionPath);
@@ -349,6 +174,18 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
             }
 
             return File.ReadAllText(protocolFilePath);
+        }
+
+        public class ProtocolInfo
+        {
+            public string Name { get; set; }
+            public string Version { get; set; }
+
+            public ProtocolInfo(string name, string version)
+            {
+                Name = name;
+                Version = version;
+            }
         }
     }
 }

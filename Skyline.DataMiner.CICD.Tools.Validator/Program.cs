@@ -88,7 +88,7 @@
                 restoreTimeoutOption
             };
 
-            rootCommand.Add(validateProtocolSolutionCommand);
+            rootCommand.AddCommand(validateProtocolSolutionCommand);
             
 
             #endregion
@@ -178,66 +178,6 @@
                 catalogApiKeyOption,            
                 tempDirectoryOption
             };
-            /*
-                        mccCommand.SetHandler(async (context) =>
-                        {
-                            var solutionPath = context.ParseResult.GetValueForOption(majorChangeCheckerSolutionPathOption);
-                            var oldProtocolPath = context.ParseResult.GetValueForOption(oldProtocolPathOption);
-                            var outputDirectory = context.ParseResult.GetValueForOption(majorChangeCheckerOutputDirectoryOption);
-                            var outputFileName = context.ParseResult.GetValueForOption(majorChangeCheckerOutputFileNameOption);
-                            var outputFormats = context.ParseResult.GetValueForOption(majorChangeCheckerOutputFormatsOption);
-                            var includeSuppressed = context.ParseResult.GetValueForOption(majorChangeCheckerIncludeSuppressedOption);
-                            var catalogId = context.ParseResult.GetValueForOption(catalogIdOption);
-                            var apiKey = context.ParseResult.GetValueForOption(catalogApiKeyOption);
-                            var tempDirectory = context.ParseResult.GetValueForOption(tempDirectoryOption);
-                            string oldProtocolCode = File.ReadAllText(oldProtocolPath);
-
-                            var checker = new MajorChangeChecker();
-                            var results = await checker.CheckMajorChanges(solutionPath, oldProtocolCode, includeSuppressed);
-
-                            if (string.IsNullOrEmpty(outputFileName))
-                            {
-                                outputFileName = $"MCCResults_{results.Protocol}_{results.Version}";
-                            }
-
-                            Directory.CreateDirectory(outputDirectory);
-
-                            foreach (var format in outputFormats)
-                            {
-                                string filePath = Path.Combine(outputDirectory, $"{outputFileName}.{format.ToLower()}");
-
-                                switch (format.ToUpper())
-                                {
-                                    case "JSON":
-                                        var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
-                                        string json = JsonSerializer.Serialize(results, jsonOptions);
-                                        File.WriteAllText(filePath, json);
-                                        break;
-
-                                    case "XML":
-                                        var xmlSerializer = new XmlSerializer(typeof(ValidatorResults));
-                                        using (var writer = new StreamWriter(filePath))
-                                        {
-                                            xmlSerializer.Serialize(writer, results);
-                                        }
-                                        break;
-
-                                    case "HTML":
-
-                                        var htmlSerializer = new ResultWriterHtml(filePath, logger, includeSuppressed);
-                                        using (var writer = new StreamWriter(filePath))
-                                        {
-                                            htmlSerializer.WriteResults(results);
-                                        }
-                                        break;
-                                    }
-
-                                        context.Console.WriteLine($"Saved {format} results to {filePath}");
-                                }
-
-                                context.Console.WriteLine($"Major change check completed. Results saved to {outputDirectory}");
-
-                        });     */
 
             mccCommand.SetHandler(async (context) =>
             {
@@ -260,7 +200,7 @@
                 context.ExitCode = result;
             });
 
-            rootCommand.Add(mccCommand);
+            rootCommand.AddCommand(mccCommand);
             #endregion
 
             int value = await rootCommand.InvokeAsync(args);

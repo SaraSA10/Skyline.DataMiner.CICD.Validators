@@ -24,12 +24,10 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
 {
     internal class MajorChangeChecker
     {
-        private static string MinimumSupportedDataMinerVersionWithBuildNumber => "10.3.0.0 - 12752";
+        private static string MinimumSupportedDataMinerVersionWithBuildNumber => "10.5.5.0 - 15690";
         private static DataMinerVersion MinSupportedDataMinerVersionWithBuildNumber { get; } = DataMinerVersion.Parse(MinimumSupportedDataMinerVersionWithBuildNumber);
 
 
-        
-        //ova ce mi isto trebat i za mcc
         private static string GetProtocolCode(string protocolFolderPath)
         {
             var solutionDirectoryPath = Path.GetDirectoryName(protocolFolderPath);
@@ -74,7 +72,6 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
             var oldDocument = oldParser.Document;
             var oldModel = new ProtocolModel(oldDocument);
 
-            
             var workspace = Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.Create();
             var solution = await workspace.OpenSolutionAsync(newSolutionFilePath, cancellationToken: cts.Token);
 
@@ -83,9 +80,8 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
 
             ValidatorSettings settings = new ValidatorSettings(MinSupportedDataMinerVersionWithBuildNumber, new UnitList(uomDoc));
 
-            
-            var validator = new Validators.Protocol.Validator();
-            IList<IValidationResult> MajorChangeCheckerResults = validator.RunCompare(newInputData, oldInputData, settings, cts.Token);
+            var checker = new Validators.Protocol.Validator();
+            IList<IValidationResult> MajorChangeCheckerResults = checker.RunCompare(newInputData, oldInputData, settings, cts.Token);
 
             var lineInfoProvider = new SimpleLineInfoProvider(newProtocolCode);
             CommentSuppressionManager suppressionManager = new CommentSuppressionManager(newDocument, lineInfoProvider);
@@ -97,13 +93,11 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
             MajorChangeCheckerresults.NewVersion = newModel.Protocol?.Version?.Value;
             MajorChangeCheckerresults.OldProtocol = oldModel.Protocol?.Name?.Value;
             MajorChangeCheckerresults.OldVersion = oldModel.Protocol?.Version?.Value;
-            MajorChangeCheckerresults.ValidatorVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            MajorChangeCheckerresults.MCCVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             MajorChangeCheckerresults.ValidationTimeStamp = timestamp;
             MajorChangeCheckerresults.SuppressedIssuesIncluded = includeSuppressed;
             return MajorChangeCheckerresults;
         }
-
-        //pomocne metode
 
         private static void ProcessSubresults(MajorChangeCheckerResults majorChangeCheckerResults, List<MajorChangeCheckerResult> subResults, bool includeSuppressed)
         {
@@ -284,7 +278,7 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
 
             if (result.DescriptionFormat != null)
             {
-                // case when <d2p1:DescriptionParameters i:nil="true" />
+                
                 return result.DescriptionFormat;
             }
 
