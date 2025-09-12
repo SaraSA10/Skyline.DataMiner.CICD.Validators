@@ -250,8 +250,8 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
 
                     var model = new ProtocolModel(document);
                     return (
-                        model.Protocol?.Name?.Value ?? "unknown",
-                        model.Protocol?.Version?.Value ?? "unknown"
+                        model.Protocol?.Name?.Value ,
+                        model.Protocol?.Version?.Value 
                     );
                 }
 
