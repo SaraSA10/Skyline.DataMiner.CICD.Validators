@@ -15,7 +15,13 @@ using Skyline.DataMiner.CICD.Parsers.Common.Xml;
 using Skyline.DataMiner.CICD.Tools.Reporter;
 using Skyline.DataMiner.CICD.Tools.Validator.OutputWriters;
 using Skyline.DataMiner.CICD.Tools.Validator.OutputWriters.HtmlWriter;
-
+/*Implement Smart Catalog ID Fallback Logic
+Enhance the extended tool to handle cases where the Catalog ID is missing or 
+invalid:
+• If the provided Catalog ID is missing or invalid, parse the public catalog to find 
+the correct one based on the current protocol’s information.
+• Retry the download with the discovered Catalog ID
+*/
 namespace Skyline.DataMiner.CICD.Tools.Validator
 {
     internal class MajorChangeCheckerRunner
@@ -36,8 +42,8 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
         }
 
         public async Task<int> RunMajorChangeChecker(string solutionPath, string oldProtocolPath,
-        string outputDirectory, string outputFileName, string[] outputFormats,
-        bool includeSuppressed, string catalogId, string apiKey, string tempDirectory)
+    string outputDirectory, string outputFileName, string[] outputFormats,
+    bool includeSuppressed, string catalogId, string apiKey)
         {
             try
             {
@@ -47,33 +53,61 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
 
                 if (string.IsNullOrEmpty(oldProtocolPath))
                 {
-                    if (string.IsNullOrEmpty(catalogId) || string.IsNullOrEmpty(apiKey))
+                    /*if (string.IsNullOrEmpty(apiKey))
                     {
-                        logger.LogError("Catalog ID and API key are required when old protocol path is not specified");
+                        logger.LogError("API key is required when old protocol path is not specified");
                         return 1;
                     }
-
+                    */
                     string newProtocolCode = GetProtocolCode(solutionPath);
                     var newParser = new Parser(newProtocolCode);
                     var newDocument = newParser.Document;
                     var newModel = new ProtocolModel(newDocument);
 
                     var catalogService = new CatalogService(logger, apiKey);
-                    string downloadedProtocolPath = await catalogService.DownloadPreviousProtocolVersion(catalogId, newModel, tempDirectory);
+                    string effectiveCatalogId = catalogId;
+
+                    // If catalog ID is not provided or invalid, try to find it from public catalog
+                    if (string.IsNullOrEmpty(effectiveCatalogId))
+                    {
+                        logger.LogInformation("Catalog ID not provided. Searching public catalog...");
+                        effectiveCatalogId = await catalogService.FindCatalogIdFromPublicCatalog(newModel.Protocol?.Name?.Value);
+
+                        if (string.IsNullOrEmpty(effectiveCatalogId))
+                        {
+                            logger.LogError("Could not find catalog ID from public catalog for protocol: {ProtocolName}", newModel.Protocol?.Name?.Value);
+                            return 1;
+                        }
+
+                        logger.LogInformation($"Found catalog ID from public catalog: {effectiveCatalogId}");
+                    }
+
+                    string downloadedProtocolPath = await catalogService.DownloadPreviousProtocolVersion(effectiveCatalogId, newModel);
 
                     if (string.IsNullOrEmpty(downloadedProtocolPath) || !File.Exists(downloadedProtocolPath))
                     {
-                        logger.LogError("Failed to download protocol from catalog");
-                        return 1;
+                        // If download failed, try to find correct catalog ID from public catalog
+                        logger.LogWarning("Download failed. Searching public catalog for correct catalog ID...");
+                        effectiveCatalogId = await catalogService.FindCatalogIdFromPublicCatalog(newModel.Protocol?.Name?.Value);
+
+                        if (!string.IsNullOrEmpty(effectiveCatalogId))
+                        {
+                            logger.LogInformation($"Retrying download with catalog ID: {effectiveCatalogId}");
+                            downloadedProtocolPath = await catalogService.DownloadPreviousProtocolVersion(effectiveCatalogId, newModel);
+                        }
+
+                        if (string.IsNullOrEmpty(downloadedProtocolPath) || !File.Exists(downloadedProtocolPath))
+                        {
+                            logger.LogError("Failed to download protocol from catalog after retry");
+                            return 1;
+                        }
                     }
 
                     oldProtocolCode = File.ReadAllText(downloadedProtocolPath);
                     var protocolInfo = GetProtocolInfo(oldProtocolCode);
                     oldProtocolName = protocolInfo.Name;
                     oldProtocolVersion = protocolInfo.Version;
-
-                    //logger.LogInformation($"Downloaded protocol: {oldProtocolName} version {oldProtocolVersion}");
-
+                    
                     File.Delete(downloadedProtocolPath);
                 }
                 else
@@ -86,6 +120,7 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
                     logger.LogInformation($"Local protocol: {oldProtocolName} version {oldProtocolVersion}");
                 }
 
+                // Rest of the method remains the same...
                 var checker = new MajorChangeChecker();
                 var results = await checker.CheckMajorChanges(solutionPath, oldProtocolCode, includeSuppressed);
 
@@ -137,7 +172,6 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
                 return 1;
             }
         }
-
         private ProtocolInfo GetProtocolInfo(string protocolCode)
         {
             try

@@ -17,6 +17,7 @@ using Skyline.DataMiner.CICD.Validators.Common.Interfaces;
 using Skyline.DataMiner.CICD.Validators.Common.Model;
 using Skyline.DataMiner.CICD.Validators.Common.Suppressions;
 using Skyline.DataMiner.CICD.Validators.Common.Tools;
+using Skyline.DataMiner.Net.SLDataGateway.API.Collections.Concurrent;
 using Skyline.DataMiner.XmlSchemas.Protocol;
 
 
@@ -38,7 +39,7 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
             {
                 throw new InvalidOperationException($"protocol.xml not found. Expected location '${protocolFilePath}'.");
             }
-
+            
             string protocolCode = File.ReadAllText(protocolFilePath);
             return protocolCode;
         }

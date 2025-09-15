@@ -158,14 +158,6 @@
                 IsRequired = false
             };
 
-            var tempDirectoryOption = new Option<string>(
-                name: "--temp-directory",
-                description: "Directory to store downloaded protocol versions.",
-                getDefaultValue: () => Path.GetTempPath())
-            {
-                IsRequired = false
-            };
-
             var mccCommand = new Command("major-change-checker", "Performs major change checking between protocol versions.")
             {
                 majorChangeCheckerSolutionPathOption,
@@ -175,8 +167,7 @@
                 majorChangeCheckerOutputFormatsOption,
                 majorChangeCheckerIncludeSuppressedOption,
                 catalogIdOption,                
-                catalogApiKeyOption,            
-                tempDirectoryOption
+                catalogApiKeyOption
             };
 
             mccCommand.SetHandler(async (context) =>
@@ -189,12 +180,11 @@
                 var includeSuppressed = context.ParseResult.GetValueForOption(majorChangeCheckerIncludeSuppressedOption);
                 var catalogId = context.ParseResult.GetValueForOption(catalogIdOption);
                 var apiKey = context.ParseResult.GetValueForOption(catalogApiKeyOption);
-                var tempDirectory = context.ParseResult.GetValueForOption(tempDirectoryOption);
 
                 var runner = new MajorChangeCheckerRunner();
                 int result = await runner.RunMajorChangeChecker(
                     solutionPath, oldProtocolPath, outputDirectory, outputFileName,
-                    outputFormats, includeSuppressed, catalogId, apiKey, tempDirectory);
+                    outputFormats, includeSuppressed, catalogId, apiKey);
                 
               
                 context.ExitCode = result;
