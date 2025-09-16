@@ -556,7 +556,7 @@ jobs:
     needs: [artifact_creation]
     if: github.ref_type == 'tag'  # Only run on releases
     permissions:
-      id-token: write  # Add this to fix OIDC error
+      id-token: none  #Upitno
 
     steps:
     - name: Azure Login
