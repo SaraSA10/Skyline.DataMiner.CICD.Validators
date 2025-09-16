@@ -18,6 +18,9 @@ on:
       oidc-subscription-id:
         required: false
         type: string
+      catalog-id:
+        required: false
+        type: string
       use-oidc:
         required: false
         type: string
@@ -36,7 +39,9 @@ on:
         required: false
       azureToken:
         required: false
-
+      catalog-api:
+        required: false
+        
 jobs:
   validate_skyline_quality_gate:
     name: SDK Skyline Quality Gate
@@ -189,6 +194,29 @@ jobs:
             --output-file-name "validateResults" `
             --perform-restore false
         continue-on-error: true
+
+      - name: Run Major Change Checker
+        if: inputs.catalog-id != '' && secrets.catalog-api-key != '' && steps.detectCsprojFiles.outputs.csproj-file-present == 'true'
+        run: |
+          dataminer-validator major-change-checker `
+            --mcc-solution-path "${{ github.workspace }}" `
+            --mcc-output-directory "${{ github.workspace }}" `
+            --output-file-name "mccResults" `
+            --output-format JSON HTML `
+            --catalog-id "${{ inputs.catalog-id }}" `
+            --catalog-api-key "${{ secrets.catalog-api-key }}"
+        continue-on-error: true
+
+      - name: Archive MCC Results
+        if: inputs.catalog-id != '' && secrets.catalog-api-key != '' && steps.detectCsprojFiles.outputs.csproj-file-present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mccResults
+          path: |
+            ${{ github.workspace }}/mccResults.json
+            ${{ github.workspace }}/mccResults.html
+        continue-on-error: true
+
 
       - name: Archive Results
         uses: actions/upload-artifact@v4
@@ -428,8 +456,7 @@ jobs:
           client-id: ${{ inputs.oidc-client-id }}
           tenant-id: ${{ inputs.oidc-tenant-id }}
           subscription-id: ${{ inputs.oidc-subscription-id }}
-          
-  
+
       - name: Retrieve needed secrets from Azure Key Vault
         if: inputs.use-oidc == 'true'
         shell: bash
@@ -467,11 +494,11 @@ jobs:
         run: |
           dotnet tool install --global Skyline.DataMiner.CICD.Tools.Packager --version 2.0.*
 
-      #- name: Find .sln file
-       # id: findSlnFile
-      #  run: |
-       #   echo solutionFilePath=$(find . -type f -name '*.sln') >> $GITHUB_OUTPUT
-      #  shell: bash
+      - name: Find .sln file
+        id: findSlnFile
+        run: |
+          echo solutionFilePath=$(find . -type f -name '*.sln') >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Enable Skyline NuGet Registries
         if: github.repository_owner == 'SkylineCommunications'
@@ -550,77 +577,12 @@ jobs:
         with:
           name: Connector Package
           path: "${{ github.workspace }}/${{ steps.packageName.outputs.name }}.dmprotocol"
-  major_change_check:
-    name: Major Change Check
-    runs-on: ubuntu-latest
-    needs: [artifact_creation]
-    if: github.ref_type == 'tag'  # Only run on releases
-    permissions:
-      id-token: none  #Upitno
 
-    steps:
-    - name: Azure Login
-      uses: azure/login@v2
-      if: inputs.use-oidc == 'true'
-      with:
-        client-id: ${{ inputs.oidc-client-id }}
-        tenant-id: ${{ inputs.oidc-tenant-id }}
-        subscription-id: ${{ inputs.oidc-subscription-id }}
-
-    - name: Retrieve needed secrets from Azure Key Vault
-      if: inputs.use-oidc == 'true'
-      shell: bash
-      run: |
-        echo "Fetching secrets from Azure Key Vault..."
-        secret_value=$(az keyvault secret show --vault-name kv-master-cicd-secrets --name "dataminer-token" --query value -o tsv)
-        echo "::add-mask::$secret_value"
-        echo "DATAMINER_TOKEN=$secret_value" >> $GITHUB_ENV
-
-    - name: Overwrite default secrets with user-defined secrets
-      shell: bash
-      run: |
-        if [[ -n "${{ secrets.api-key }}" ]]; then
-        echo "Using provided api-key secret"
-        echo "DATAMINER_TOKEN=${{ secrets.api-key }}" >> "$GITHUB_ENV"
-        fi
-
-    - uses: actions/checkout@v5
-
-    - name: Find .sln file
-      id: findSlnFile
-      run: |
-        echo solutionFilePath=$(find . -type f -name '*.sln') >> $GITHUB_OUTPUT
-      shell: bash
-
-    - name: Install Validator Tool
-      run: dotnet tool install -g Skyline.DataMiner.CICD.Tools.Validator
-
-    - name: Download Previous Protocol Version
-      run: |
-        dataminer-validator download-previous-version \
-          --catalog-id "${{ vars.catalogIdentifier }}" \
-          --catalog-api-key "${{ env.DATAMINER_TOKEN }}" \
-          --output-directory "${{ github.workspace }}/previousVersion"
-
-    - name: Run Major Change Checker
-      run: |
-        dataminer-validator major-change-checker \
-          --mcc-solution-path "${{ steps.findSlnFile.outputs.solutionFilePath }}" \
-          --mcc-output-directory "${{ github.workspace }}/mccResults" \
-          --mcc-previous-protocol-path "${{ github.workspace }}/previousVersion" \
-          --catalog-id "${{ vars.catalogIdentifier }}" \
-          --catalog-api-key "${{ env.DATAMINER_TOKEN }}"
-
-    - name: Upload Major Change Check Results
-      uses: actions/upload-artifact@v4
-      with:
-        name: Major Change Check Results
-        path: "${{ github.workspace }}/mccResults/*"
   artifact_registration:
     name: Artifact Registration and Upload
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
-    needs: [validate_skyline_quality_gate,artifact_creation,major_change_check]
+    needs: [validate_skyline_quality_gate,artifact_creation]
     steps:
       - name: Azure Login
         uses: azure/login@v2
