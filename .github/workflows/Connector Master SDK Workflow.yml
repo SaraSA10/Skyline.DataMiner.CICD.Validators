@@ -196,7 +196,7 @@ jobs:
         continue-on-error: true
 
       - name: Run Major Change Checker
-        if: inputs.catalog-id != '' && secrets.catalog-api-key != '' && steps.detectCsprojFiles.outputs.csproj-file-present == 'true'
+        #if: inputs.catalog-id != '' && secrets.catalog-api-key != '' && steps.detectCsprojFiles.outputs.csproj-file-present == 'true'
         run: |
           dataminer-validator major-change-checker `
             --mcc-solution-path "${{ github.workspace }}" `
@@ -208,7 +208,7 @@ jobs:
         continue-on-error: true
 
       - name: Archive MCC Results
-        if: inputs.catalog-id != '' && secrets.catalog-api-key != '' && steps.detectCsprojFiles.outputs.csproj-file-present == 'true'
+        #if: inputs.catalog-id != '' && secrets.catalog-api-key != '' && steps.detectCsprojFiles.outputs.csproj-file-present == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: mccResults
