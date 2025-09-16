@@ -195,28 +195,7 @@ jobs:
             --perform-restore false
         continue-on-error: true
 
-      - name: Run Major Change Checker
-        #if: inputs.catalog-id != '' && secrets.catalog-api-key != '' && steps.detectCsprojFiles.outputs.csproj-file-present == 'true'
-        run: |
-          dataminer-validator major-change-checker `
-            --mcc-solution-path "${{ github.workspace }}" `
-            --mcc-output-directory "${{ github.workspace }}" `
-            --output-file-name "mccResults" `
-            --output-format JSON HTML `
-            --catalog-id "${{ inputs.catalog-id }}" `
-            --catalog-api-key "${{ secrets.catalog-api-key }}"
-        continue-on-error: true
-
-      - name: Archive MCC Results
-        #if: inputs.catalog-id != '' && secrets.catalog-api-key != '' && steps.detectCsprojFiles.outputs.csproj-file-present == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mccResults
-          path: |
-            ${{ github.workspace }}/mccResults.json
-            ${{ github.workspace }}/mccResults.html
-        continue-on-error: true
-
+    
 
       - name: Archive Results
         uses: actions/upload-artifact@v4
