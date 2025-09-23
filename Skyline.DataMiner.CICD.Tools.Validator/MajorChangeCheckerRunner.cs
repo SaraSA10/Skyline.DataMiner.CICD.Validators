@@ -53,7 +53,7 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
                     var newDocument = newParser.Document;
                     var newModel = new ProtocolModel(newDocument);
 
-                    var catalogService = new CatalogService(logger, apiKey);
+                    var catalogService = new CatalogService(logger, apiKey, newProtocolCode);
                     string effectiveCatalogId = catalogId;
 
                    
