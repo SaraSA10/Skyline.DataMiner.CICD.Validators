@@ -13,12 +13,12 @@ on:
 jobs:
 
   CICD:
-    uses: SaraSA10/_ReusableWorkflows/.github/workflows/NuGet Solution Master Workflow.yml@main
+    uses: SaraSA10/_ReusableWorkflows/.github/workflows/Connector Master SDK Workflow.yml@main
     with:
       sonarCloudProjectName: SaraSA10_Skyline.DataMiner.CICD.Validators
     secrets:
      nugetApiKey: ${{ secrets.NUGETAPIKEY }}
-    # sonarCloudToken: ${{ secrets.SONARCLOUD_TOKEN }}
+     sonarCloudToken: ${{ secrets.SONARCLOUD_TOKEN }}
   
   export:
     if: github.ref_type == 'tag'
