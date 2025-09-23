@@ -14,8 +14,8 @@ jobs:
 
   CICD:
     uses: SaraSA10/_ReusableWorkflows/.github/workflows/NuGet Solution Master Workflow.yml@main
-    #with:
-     # sonarCloudProjectName: SaraSA10_Skyline.DataMiner.CICD.Validators
+    with:
+      sonarCloudProjectName: SaraSA10_Skyline.DataMiner.CICD.Validators
     secrets:
      nugetApiKey: ${{ secrets.NUGETAPIKEY }}
     # sonarCloudToken: ${{ secrets.SONARCLOUD_TOKEN }}
