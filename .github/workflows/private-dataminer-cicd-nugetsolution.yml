@@ -17,7 +17,7 @@ jobs:
     with:
       sonarCloudProjectName: SaraSA10_Skyline.DataMiner.CICD.Validators
     secrets:
-     nugetApiKey: ${{ secrets.NUGETAPIKEY }}
+     #nugetApiKey: ${{ secrets.NUGETAPIKEY }}
      sonarCloudToken: ${{ secrets.SONARCLOUD_TOKEN }}
   
   export:
