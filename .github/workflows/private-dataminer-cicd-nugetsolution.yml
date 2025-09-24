@@ -11,10 +11,10 @@ jobs:
   CICD:
     uses: SaraSA10/_ReusableWorkflows/.github/workflows/main.yml@main
     with:
-      # Use relative path from repository root instead of absolute path
-      solution-path: '.'  # This will search for .sln files in the repository root
+     
+      solution-path: '.' 
       output-directory: 'mcc-results'
-      catalog-id: 'f085ba56-de3f-42e6-97a5-566d05d5f325'
+      catalog-id: ${{ vars.CATALOG_IDENTIFIER }}
       output-format: 'JSON,HTML'
     secrets:
       catalog-api-key: ${{ secrets.CATALOG_API_KEY }}
