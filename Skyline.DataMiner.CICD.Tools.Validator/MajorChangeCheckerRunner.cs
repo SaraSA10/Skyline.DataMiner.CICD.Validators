@@ -118,7 +118,7 @@ namespace Skyline.DataMiner.CICD.Tools.Validator
 
                 if (string.IsNullOrEmpty(outputFileName))
                 {
-                    outputFileName = $"MCCResults_{results.NewProtocol}_{results.NewVersion}_vs_{oldProtocolName}_{oldProtocolVersion}";
+                    outputFileName = $"MCCResults_{results.NewProtocol}_{results.NewVersion}";
                 }
 
                 Directory.CreateDirectory(outputDirectory);
