@@ -13,12 +13,11 @@ on:
 jobs:
 
   CICD:
-    uses: SaraSA10/Skyline.DataMiner.CICD.Validators/.github/workflows/MajorChangeChecker.yml@main
+    uses: SaraSA10/_ReusableWorkflows/.github/workflows/MajorChangeChecker.yml@main
     with:
-      sonarCloudProjectName: SaraSA10_Skyline.DataMiner.CICD.Validators
+      sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.CICD.Validators
     secrets:
-     #nugetApiKey: ${{ secrets.NUGETAPIKEY }}
-     sonarCloudToken: ${{ secrets.SONARCLOUD_TOKEN }}
+      nugetApiKey: ${{ secrets.NUGETAPIKEY }}
   
   export:
     if: github.ref_type == 'tag'
