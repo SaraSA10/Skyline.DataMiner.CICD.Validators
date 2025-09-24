@@ -13,7 +13,7 @@ on:
 jobs:
 
   CICD:
-    uses: SaraSA10/.github/workflows/MajorChangeChecker.yml@main
+    uses: SaraSA10/Skyline.DataMiner.CICD.Validators/.github/workflows/MajorChangeChecker.yml@main
     with:
       sonarCloudProjectName: SaraSA10_Skyline.DataMiner.CICD.Validators
     secrets:
