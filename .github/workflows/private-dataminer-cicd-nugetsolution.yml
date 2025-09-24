@@ -16,7 +16,7 @@ jobs:
     uses: SaraSA10/_ReusableWorkflows/.github/workflows/main.yml@main
     with:
       solution-path: 'solution.sln'  
-      # output-directory: 'mcc-results'
+      output-directory: 'mcc-results'
       catalog-id: 'f085ba56-de3f-42e6-97a5-566d05d5f325'
       # output-format: 'JSON,HTML'
     secrets:
