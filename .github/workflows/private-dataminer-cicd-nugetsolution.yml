@@ -1,3 +1,5 @@
+name: CI/CD Pipeline
+
 on:
   push:
     branches:
@@ -8,20 +10,20 @@ on:
   workflow_dispatch:
 
 jobs:
-  CICD:
-    uses: SaraSA10/_ReusableWorkflows/.github/workflows/main.yml@main
+  major-change-check:
+    uses: ./.github/workflows/major-change-checker.yml
     with:
-     
-      solution-path: '.' 
+      solution-path: '.'
       output-directory: 'mcc-results'
       catalog-id: ${{ vars.CATALOG_IDENTIFIER }}
       output-format: 'JSON,HTML'
+      build-configuration: 'Release'
     secrets:
       catalog-api-key: ${{ secrets.CATALOG_API_KEY }}
 
   export:
     if: github.ref_type == 'tag'
-    needs: CICD
+    needs: major-change-check
     name: Export Error Messages
     runs-on: ubuntu-latest
     permissions:
