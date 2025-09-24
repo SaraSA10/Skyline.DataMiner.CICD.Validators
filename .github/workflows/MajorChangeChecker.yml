@@ -1,0 +1,104 @@
+name: DataMiner Major Change Checker
+
+on:
+  push:
+    branches: [ main, V2, develop ]
+  pull_request:
+    branches: [ main, V2 ]
+  workflow_dispatch:
+    inputs:
+      target-branch:
+        description: 'Branch to run MCC on (default: current branch)'
+        required: false
+        default: ''
+      solution-path:
+        description: 'Path to solution relative to repo root'
+        required: true
+        default: '.'
+      output-directory:
+        description: 'Directory for results (relative to repo root)'
+        required: true
+        default: './mcc-results'
+      catalog-id:
+        description: 'Catalog ID for previous version'
+        required: true
+      catalog-api-key:
+        description: 'Catalog API key'
+        required: true
+        type: secret
+      output-file-name:
+        description: 'Results file name (optional)'
+        required: false
+      output-format:
+        description: 'Output format'
+        required: false
+        default: 'JSON,HTML'
+      include-suppressed:
+        description: 'Include suppressed results'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  major-change-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Determine target branch
+      id: branch
+      run: |
+        # If branch is provided via input, use it. Otherwise use the current branch
+        if [ -n "${{ inputs.target-branch }}" ]; then
+          echo "branch=${{ inputs.target-branch }}" >> $GITHUB_OUTPUT
+        else
+          echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+        fi
+        echo "Using branch: ${{ steps.branch.outputs.branch }}"
+      
+    - name: Checkout target branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ steps.branch.outputs.branch }}
+        fetch-depth: 0
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Install Validator Tool
+      run: dotnet tool install --global Skyline.DataMiner.CICD.Tools.Validator --version 1.5.0-alpha
+      
+    - name: Create output directory
+      run: mkdir -p ${{ inputs.output-directory }}
+      
+    - name: Validate solution exists
+      run: |
+        if [ ! -f "${{ inputs.solution-path }}" ] && [ ! -d "${{ inputs.solution-path }}" ]; then
+          echo "Solution path '${{ inputs.solution-path }}' not found"
+          echo "Current directory contents:"
+          ls -la
+          exit 1
+        else
+          echo "Solution path exists: ${{ inputs.solution-path }}"
+        fi
+      
+    - name: Run Major Change Checker
+      run: |
+        validator major-change-checker \
+          --mcc-solution-path "${{ inputs.solution-path }}" \
+          --mcc-output-directory "${{ inputs.output-directory }}" \
+          --catalog-id "${{ inputs.catalog-id }}" \
+          --catalog-api-key "$DATAMINER_TOKEN" \
+          --output-format ${{ inputs.output-format }} \
+          --include-suppressed ${{ inputs.include-suppressed }} \
+          ${{{ inputs.output-file-name }:+--output-file-name "${{ inputs.output-file-name }}"}}
+      env:
+        CATALOG_API_KEY: ${{ secrets.DATAMINER_TOKEN }}
+        
+    - name: Upload results as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcc-results-${{ steps.branch.outputs.branch }}-${{ github.run_id }}
+        path: ${{ inputs.output-directory }}/*
+        retention-days: 30
