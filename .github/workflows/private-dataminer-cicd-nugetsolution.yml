@@ -1,5 +1,3 @@
-name: DataMiner CICD NuGet Solution
-
 on:
   push:
     branches:
@@ -7,19 +5,20 @@ on:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
       - "[0-9]+.[0-9]+.[0-9]+-**"
-
   workflow_dispatch:
 
 jobs:
-
   CICD:
-    uses: SaraSA10/_ReusableWorkflows/.github/workflows/NuGet Solution Master Workflow.yml@main
+    uses: SaraSA10/_ReusableWorkflows/.github/workflows/main.yml@main
     with:
-      sonarCloudProjectName: SaraSA10_Skyline.DataMiner.CICD.Validators
+     
+      solution-path: '.' 
+      output-directory: 'mcc-results'
+      catalog-id: ${{ vars.CATALOG_IDENTIFIER }}
+      output-format: 'JSON,HTML'
     secrets:
-     nugetApiKey: ${{ secrets.NUGETAPIKEY }}
-    # sonarCloudToken: ${{ secrets.SONARCLOUD_TOKEN }}
-  
+      catalog-api-key: ${{ secrets.CATALOG_API_KEY }}
+
   export:
     if: github.ref_type == 'tag'
     needs: CICD
